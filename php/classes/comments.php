@@ -349,7 +349,7 @@ class Comments {
 		// create query template
 		$query = "SELECT commentId, userId, commentContent, commentDate FROM comments WHERE commentContent LIKE ?";
 		$statement =$mysqli->prepare($query);
-		if($statment === false) {
+		if($statement === false) {
 			throw(new mysqli_sql_exception("unable to prepare statement"));
 		}
 
@@ -363,6 +363,39 @@ class Comments {
 		// execute the statement
 		if($statement->execute() === false) {
 			throw(new mysqli_sql_exception("unable to execute mySQL statement"));
+		}
+
+		// get result from the SELECT query
+		$result = $statement->get_result();
+		if($result === false) {
+			throw(new mysqli_sql_exception("unable to get result set"));
+		}
+
+		// build an array of Comments
+		$comments = array();
+		while(($row= $result->fetch_assoc()) !== null) {
+			try {
+				$comment = new Comments($row["commentId"], $row["userId"], $row["commentContent"], $row["commentDate"]);
+				$comments[] = $comment;
+			}
+			catch(Exception $exception) {
+				// if the row couldnt be converted, rethrow it
+				throw(new mysqli_sql_exception($exception->getMessage(), 0, $exception));
+			}
+
+		}
+
+		// count the results in the array and return:
+		// 1) null if 0 results
+		// 2) a single object if 1 result
+		// 3) the entire array if > 1 result
+		$numberOfComments = count($comments);
+		if($numberOfComments === 0) {
+			return(null);
+		} else if($numberOfComments === 1) {
+			return($comments[0]);
+			} else {
+			return($comments);
 		}
 	}
 }
